@@ -11,7 +11,9 @@
 # Execução:
 #
 # wget https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - ciscopt-buster.sh 
-#
+# versão pt 7.2.2 https://www.netacad.com/portal/resources/file/a32ca2bc-cfc7-4ed0-a73e-17a5a74ed819
+# https://www.netacad.com/portal/resources/file/a32ca2bc-cfc7-4ed0-a73e-17a5a74ed819
+# 
 
 clear
 
@@ -47,9 +49,6 @@ link_libpng12_deb8_amd64="${ftp_us}/libp/libpng/libpng12-0_1.2.50-2+deb8u3_amd64
 link_libpng12_deb8_i386="${ftp_us}/libp/libpng/libpng12-0_1.2.50-2+deb8u3_i386.deb"
 link_libssl1_deb8_amd64="${security}/pool/updates/main/o/openssl/libssl1.0.0_1.0.1t-1+deb8u11_amd64.deb"
 link_libssl1_deb8_i386="${security}/pool/updates/main/o/openssl/libssl1.0.0_1.0.1t-1+deb8u11_i386.deb"
-
-hash_ciscopkt72="fa334416ec1868a4ce2a487fec5e45d1e330fbb61d6961f33cb2a18ecabae7db"
-
 
 # Diretórios
 DIR_APPS_LINUX="${HOME}"/"${codinome_sistema}"
@@ -142,20 +141,16 @@ echo 'Iniciando instalação...'
 
 while true; do
 
-	arq_instalacao=$(msgs_zenity "--file-selection" "Selecionar arquivo" "*.tar.gz" "*.tar.gz")
+	arq_instalacao=$(msgs_zenity "--file-selection" "Selecionar arquivo" "*.tar.gz" "*.run")
 	nome_arq=$(echo $arq_instalacao | sed 's|.*/||g')
 
-		# Soma sha256sum.
-		echo 'Executando: sha256sum aguarde...'
-		[[ $(sha256sum "$arq_instalacao" | cut -d ' ' -f 1) == "$hash_ciscopkt72" ]] || {
-		msgs_zenity "--error" "Arquivo inválido" "Erro: Selecione cisco packettracer versão 7.2 x64" "450" "100"
-		continue
-		}
+	[[ -z "$arq_instalacao" ]] && exit 1
 
 	prosseguir=$(msgs_zenity "--list" "Usar este arquivo ?" "Continuar" "650" "250" "$nome_arq" "Sim Não")
 	
 	# Descompactar e instalar packettracer.
-	if [[ "$prosseguir" == "Sim" ]]; then
+	if [[ "$prosseguir" == "Sim" ]] && [[ $(echo "$nome_arq" | egrep ".tar.gz$" ) ]]; then
+		echo 'Instalando .tar.gz'
 	
 		sudo rm -rf "${dir_tmp_pt}"/* 1> /dev/null 2>&1s
 		tar xvzf "$arq_instalacao" -C "$dir_tmp_pt"
@@ -163,15 +158,19 @@ while true; do
 		cd "$dir_tmp_pt/" && ./install
 		(_corrigir_arquivos)
 		break
+	elif [[ "$prosseguir" == "Sim" ]] && [[ $(echo "$nome_arq" | egrep ".run$" ) ]]; then
+		echo 'Instalando .run'
+		chmod +x "$arq_instalacao"
+		"$arq_instalacao"
+		break
 
 	elif [[ "$prosseguir" == "Não" ]]; then
-		break 
 		echo 'Não...'
 		exit 1
-	else
 		break 
-		echo 'Abortando...'
-		exit 1
+	else
+		echo 'Repetindo...'
+		continue
 	fi
 done
 } # Fim _inst_ciscopkt
@@ -256,6 +255,7 @@ function _inst_dependencias()
 # Suporte a 32 bits disponível ?.
 [[ $(dpkg --print-foreign-architectures | grep i386) == "i386" ]] || { sudo dpkg --add-architecture i386; }
 sudo apt update
+echo 'Instalando: gdebi aptitude multiarch-support qtmultimedia5-dev libqt5script5 libqt5scripttools5'
 sudo apt install --yes gdebi aptitude multiarch-support qtmultimedia5-dev libqt5script5 libqt5scripttools5
 
 	case "$codinome_sistema" in
