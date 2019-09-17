@@ -10,7 +10,7 @@
 # 
 # Execução:
 #
-# wget -qc https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - | bash 
+# wget -q https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - | bash 
 #
 
 clear
