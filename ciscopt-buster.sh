@@ -118,21 +118,6 @@ esac
 
 }
 
-function _sis_admin()
-{
-	
-# Autênticação [sudo].
-while true; do
-	clear
-	sudo -K
-	#senha=$(zenity --password --title="[sudo: $USER]")
-	#echo $senha | sudo -S ls / 1> /dev/null 2>&1
-	sudo ls / 1> /dev/null 2>&1 # Verificar se a senha foi validada.
-	[[ $? == 0 ]] || { msgs_zenity "--error" "Falha" "Senha incorrenta" "310" "200"; continue; }
-	break 
-done
-}
-
 #---------------------------[ Instalar cisco pt ]-----------#
 function _inst_ciscopkt() 
 {
@@ -162,6 +147,7 @@ while true; do
 		echo 'Instalando .run'
 		chmod +x "$arq_instalacao"
 		"$arq_instalacao"
+		#(_corrigir_arquivos)
 		break
 
 	elif [[ "$prosseguir" == "Não" ]]; then
@@ -217,20 +203,41 @@ function _inst_libs_bionic()
 function _corrigir_arquivos()
 {
 
-sudo sh -c 'sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.linguist' # /opt/pt/tpl.linguist
+ # /opt/pt/tpl.linguist
+[[ -f '/opt/pt/tpl.linguist' ]] && { sudo sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.linguist; }
 
-sudo sh -c 'sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.packettracer' # /opt/pt/tpl.packettracer
+# /opt/pt/tpl.packettracer
+[[ -f '/opt/pt/tpl.packettracer' ]] && { sudo sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.packettracer; }
 
-[[ -f /usr/share/applications/pt7.desktop ]] && sudo rm /usr/share/applications/pt7.desktop # Arquivo .desktop
-sudo cp -u /opt/pt/bin/Cisco-PacketTracer.desktop /usr/share/applications/ 
-
+# Arquivo pt7.desktop
+[[ -f '/opt/pt/bin/Cisco-PacketTracer.desktop' ]] && {
+	sudo cp -u '/opt/pt/bin/Cisco-PacketTracer.desktop' '/usr/share/applications/' 
+	[[ -f '/usr/share/applications/pt7.desktop' ]] && sudo rm '/usr/share/applications/pt7.desktop'
+} 
 } # Fim de corrigir arquivos
 
+
+#-----------------------------------[ Dependências ]----------------------#
+function _inst_dependencias() 
+{
+
+echo 'Instalando: gdebi aptitude multiarch-support qtmultimedia5-dev libqt5script5 libqt5scripttools5'
+echo ' '
+
+# Suporte a 32 bits disponível ?.
+[[ $(dpkg --print-foreign-architectures | grep i386) == "i386" ]] || { sudo dpkg --add-architecture i386; }
+sudo apt update
+sudo apt install --yes gdebi aptitude multiarch-support qtmultimedia5-dev libqt5script5 libqt5scripttools5
+
+	[[ -d "$dir_tmp_pt" ]] && sudo rm -rf "$dir_tmp_pt"
+} 
+
+# Instalar dependências antes de instalar o programa.
+(_inst_dependencias) 
 
 # Executar a função de instalação se packettracer não estiver nas condições abaixo.
 if [[ ! -x $(which packettracer) ]] || [[ ! -x /opt/pt/bin/PacketTracer7 ]]; then
 
-# Executar a função (msgs_zenity) para mostrar a mensagem abaixo.
 instalar_agora=$(msgs_zenity "--list" "Instalar" "Selecione" "650" "250" "Instalação" "Instalar Sair")
 
 	if [[ "$instalar_agora" == "Instalar" ]]; then
@@ -244,34 +251,13 @@ fi
 # Checar se local de instalação é '/opt/pt/bin'
 [[ -x /opt/pt/bin/PacketTracer7 ]] || { echo 'Cisco-PacketTracer não instalado em: [/opt/pt] saindo...'; exit 1; }
 
-
-#-----------------------------------[ Dependências ]----------------------#
-function _inst_dependencias() 
-{
-
-# Autênticação [sudo].
-(_sis_admin)
-
-# Suporte a 32 bits disponível ?.
-[[ $(dpkg --print-foreign-architectures | grep i386) == "i386" ]] || { sudo dpkg --add-architecture i386; }
-sudo apt update
-echo 'Instalando: gdebi aptitude multiarch-support qtmultimedia5-dev libqt5script5 libqt5scripttools5'
-sudo apt install --yes gdebi aptitude multiarch-support qtmultimedia5-dev libqt5script5 libqt5scripttools5
+(_corrigir_arquivos)
 
 	case "$codinome_sistema" in
-	buster) (_inst_libs_buster);; # Debian.
-	bionic) (_inst_libs_bionic);; # Ubuntu.
+		buster) (_inst_libs_buster);; # Debian.
+		bionic) (_inst_libs_bionic);; # Ubuntu.
 	esac
-	(_corrigir_arquivos)
 
-	msgs_zenity "--info" "Reiniciar" "Reinicie seu computador para aplicar alterações" "550" "150"
-
-	[[ -d "$dir_tmp_pt" ]] && sudo rm -rf "$dir_tmp_pt"
-
-
-} # Fim de _inst_dependencias.
-
-(_inst_dependencias)
-(_corrigir_arquivos)
+msgs_zenity "--info" "Reiniciar" "Reinicie seu computador para aplicar alterações" "550" "150"
 
 sudo -K
