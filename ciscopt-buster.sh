@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
-# tar xvzf PacketTracer7.2.1forLinux64bit.tar.gz -C PacketTracer/
 #
-# Versão: 1.8
+# Versão: 1.9
 # Ultima modificação: 2019-09-16 
-#
-# tar xvzf Cisco-PT-711-x64.tar
-#
-# Você precisa adicionar a arquitetura i386, tornando o sistema multiarch
-# sudo dpkg --add-architecture i386; sudo apt-get update
 # 
-# sudo apt install qtmultimedia5-dev libqt5script5 libqt5scripttools5
+# Repositório:
+# https://github.com/Brunopvh/cisco-pt-buster
+# https://github.com/Brunopvh/cisco-pt-buster.git
+# 
+# Execução:
+#
+# wget -qc https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - | bash 
 
 clear
 
@@ -69,27 +69,25 @@ mkdir -p "$DIR_APPS_LINUX" "$DIR_INTERNET" "$dir_tmp_pt" "$dir_libs"
 	exit
 }
 
-# Zenity
-[[ -x $(which zenity) ]] || {
-	echo 'Nescessário instalar zenity'
-	sudo apt install zenity -y
-	[[ $? == 0 ]] || { echo 'Falha: zenity'; exit 1; }
+# Função para verificar ou instalar os programas necessários.
+function _apps_exist() 
+{
+	# $1 = programa a verificar ou instalar.
+	local msg="Necessário instalar : "
+	local msg_falha="Falha ao tentar instalar : "
+	
+	[[ -x $(which $1) ]] || { 
+		echo -e "${amarelo}$msg $1 ${fecha}"
+		sudo apt install -y $1
+			[[ $? == 0 ]] || { echo -e "${vermelho}$msg_falha $1 ${fecha}"; exit 1; } 
+	}
 }
 
-# Gdebi
-[[ -x $(which gdebi) ]] || { 
-	echo echo 'Nescessário instalar Gdebi'
-	sudo apt install --yes gdebi
-	[[ $? == 0 ]] || { echo 'Falha: gdebi'; exit 1; }
-}
+_apps_exist 'zenity' # Zenity
 
-# Wget
-[[ -x $(which wget) ]] || {
-	echo 'Nescessário instalar wget'
-	sudo apt install -y wget
-	[[ $? == 0 ]] || { echo 'Falha: wget'; exit 1; }
-}
+_apps_exist 'gdebi' # Gdebi
 
+_apps_exist 'wget' # Wget
 
 #-------------------------[ Função para exibir mensagens com zenity ]----------#
 function msgs_zenity()
