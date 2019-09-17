@@ -10,7 +10,7 @@
 # 
 # Execução:
 #
-# wget -q https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - | bash 
+# wget https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - ciscopt-buster.sh 
 #
 
 clear
@@ -126,9 +126,9 @@ function _sis_admin()
 while true; do
 	clear
 	sudo -K
-	senha=$(zenity --password --title="[sudo: $USER]")
-	echo $senha | sudo -S ls / 1> /dev/null 2>&1 # Verificar se a senha foi validada.
-	
+	#senha=$(zenity --password --title="[sudo: $USER]")
+	#echo $senha | sudo -S ls / 1> /dev/null 2>&1
+	sudo ls / 1> /dev/null 2>&1 # Verificar se a senha foi validada.
 	[[ $? == 0 ]] || { msgs_zenity "--error" "Falha" "Senha incorrenta" "310" "200"; continue; }
 	break 
 done
@@ -268,8 +268,10 @@ sudo apt install --yes gdebi aptitude multiarch-support qtmultimedia5-dev libqt5
 
 	[[ -d "$dir_tmp_pt" ]] && sudo rm -rf "$dir_tmp_pt"
 
-	sudo -K
+
 } # Fim de _inst_dependencias.
 
 (_inst_dependencias)
 (_corrigir_arquivos)
+
+sudo -K
