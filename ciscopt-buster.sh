@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 #
-# Versão: 1.9
-# Ultima modificação: 2019-09-16 
+# Versão: 2.2
+# Ultima modificação: 2019-09-17 
 # 
 # Repositório:
 # https://github.com/Brunopvh/cisco-pt-buster
@@ -11,6 +11,7 @@
 # Execução:
 #
 # wget -qc https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - | bash 
+#
 
 clear
 
@@ -49,8 +50,6 @@ link_libssl1_deb8_i386="${security}/pool/updates/main/o/openssl/libssl1.0.0_1.0.
 
 hash_ciscopkt72="fa334416ec1868a4ce2a487fec5e45d1e330fbb61d6961f33cb2a18ecabae7db"
 
-# export local_trab=$(dirname $0) 
-export readonly local_trab=$(dirname $(readlink -f "$0")) # Path do programa no sistema.
 
 # Diretórios
 DIR_APPS_LINUX="${HOME}"/"${codinome_sistema}"
@@ -63,6 +62,9 @@ arq_libssl1_deb8_i386="${DIR_INTERNET}"/libssl1.0_deb8_i386.deb
 arq_libpng12_deb8_amd64="${DIR_INTERNET}"/libpng12-0_deb8_amd64.deb
 
 mkdir -p "$DIR_APPS_LINUX" "$DIR_INTERNET" "$dir_tmp_pt" "$dir_libs"
+
+# export local_trab=$(dirname $0) 
+export readonly local_trab=$(dirname $(readlink -f "$0")) # Path do programa no sistema.
 
 [[ ! -w "$local_trab" ]] && {
 	echo -e "Você não tem permissão de escrita em: $local_trab"
@@ -136,30 +138,43 @@ done
 function _inst_ciscopkt() 
 {
 
-clear
 echo 'Iniciando instalação...'
 
-arq_instalacao=$(msgs_zenity "--file-selection" "Selecionar arquivo" "*.tar.gz" "*.tar.gz")
+while true; do
 
-nome_arq=$(echo $arq_instalacao | sed 's|.*/||g')
+	arq_instalacao=$(msgs_zenity "--file-selection" "Selecionar arquivo" "*.tar.gz" "*.tar.gz")
+	nome_arq=$(echo $arq_instalacao | sed 's|.*/||g')
 
-prosseguir=$(msgs_zenity "--list" "Usar este arquivo ?" "Continuar" "650" "250" "$nome_arq" "Sim Não")
+		# Soma sha256sum.
+		echo 'Executando: sha256sum aguarde...'
+		[[ $(sha256sum "$arq_instalacao" | cut -d ' ' -f 1) == "$hash_ciscopkt72" ]] || {
+		msgs_zenity "--error" "Arquivo inválido" "Erro: Selecione cisco packettracer versão 7.2 x64" "450" "100"
+		continue
+		}
+
+	prosseguir=$(msgs_zenity "--list" "Usar este arquivo ?" "Continuar" "650" "250" "$nome_arq" "Sim Não")
 	
 	# Descompactar e instalar packettracer.
 	if [[ "$prosseguir" == "Sim" ]]; then
 	
-	# Soma sha256sum.
-	if [[ $(sha256sum "$arq_instalacao" | cut -d ' ' -f 1) != "$hash_ciscopkt72" ]]; then
-	msgs_zenity "--error" "Arquivo inválido" "Erro: Selecione cisco packettracer versão 7.2 x64" "450" "100"
+		sudo rm -rf "${dir_tmp_pt}"/* 1> /dev/null 2>&1s
+		tar xvzf "$arq_instalacao" -C "$dir_tmp_pt"
+		chmod +x "$dir_tmp_pt/install"
+		cd "$dir_tmp_pt/" && ./install
+		(_corrigir_arquivos)
+		break
+
+	elif [[ "$prosseguir" == "Não" ]]; then
+		break 
+		echo 'Não...'
+		exit 1
+	else
+		break 
+		echo 'Abortando...'
+		exit 1
 	fi
-	
-	[[ -d "$dir_tmp_pt" ]] && sudo rm -rf "$dir_tmp_pt"
-	mkdir -p "$dir_tmp_pt"
-	tar xvzf "$arq_instalacao" -C "$dir_tmp_pt"
-	chmod +x "$dir_tmp_pt/install"
-	cd "$dir_tmp_pt/" && ./install
-	fi	
-}
+done
+} # Fim _inst_ciscopkt
 
 #---------------------[ Função para instalar libs debian buster ]----------#
 function _inst_libs_buster() {
@@ -220,7 +235,7 @@ if [[ ! -x $(which packettracer) ]] || [[ ! -x /opt/pt/bin/PacketTracer7 ]]; the
 instalar_agora=$(msgs_zenity "--list" "Instalar" "Selecione" "650" "250" "Instalação" "Instalar Sair")
 
 	if [[ "$instalar_agora" == "Instalar" ]]; then
-		(_inst_ciscopkt) && (_corrigir_arquivos) # Debian/Ubuntu.
+		(_inst_ciscopkt) # Debian/Ubuntu.
 	else
 		exit 0
 	fi
@@ -230,8 +245,10 @@ fi
 # Checar se local de instalação é '/opt/pt/bin'
 [[ -x /opt/pt/bin/PacketTracer7 ]] || { echo 'Cisco-PacketTracer não instalado em: [/opt/pt] saindo...'; exit 1; }
 
-# Instalar dependências via repositório.
-clear
+
+#-----------------------------------[ Dependências ]----------------------#
+function _inst_dependencias() 
+{
 
 # Autênticação [sudo].
 (_sis_admin)
@@ -245,9 +262,14 @@ sudo apt install --yes gdebi aptitude multiarch-support qtmultimedia5-dev libqt5
 	buster) (_inst_libs_buster);; # Debian.
 	bionic) (_inst_libs_bionic);; # Ubuntu.
 	esac
+	(_corrigir_arquivos)
 
-msgs_zenity "--info" "Reiniciar" "Reinicie seu computador para aplicar alterações" "550" "150"
+	msgs_zenity "--info" "Reiniciar" "Reinicie seu computador para aplicar alterações" "550" "150"
 
-[[ -d "$dir_tmp_pt" ]] && sudo rm -rf "$dir_tmp_pt"
+	[[ -d "$dir_tmp_pt" ]] && sudo rm -rf "$dir_tmp_pt"
 
-sudo -K
+	sudo -K
+} # Fim de _inst_dependencias.
+
+(_inst_dependencias)
+(_corrigir_arquivos)
