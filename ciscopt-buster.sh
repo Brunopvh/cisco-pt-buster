@@ -11,14 +11,14 @@
 # Execução:
 #
 # wget https://raw.githubusercontent.com/Brunopvh/cisco-pt-buster/master/ciscopt-buster.sh -O - ciscopt-buster.sh 
-# versão pt 7.2.2 https://www.netacad.com/portal/resources/file/a32ca2bc-cfc7-4ed0-a73e-17a5a74ed819
-# https://www.netacad.com/portal/resources/file/a32ca2bc-cfc7-4ed0-a73e-17a5a74ed819
+# 
+# 
 # 
 
 clear
 
-#----------------------[ Variaveis ]----------------------------------#
 
+# Cores
 amarelo="\e[1;33m"
 Amarelo="\e[1;33;5m"
 vermelho="\e[1;31m"
