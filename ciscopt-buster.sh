@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#
+# AUTOR: Bruno Chaves
 # Versão: 2.2
 # Ultima modificação: 2019-09-17 
 # 
