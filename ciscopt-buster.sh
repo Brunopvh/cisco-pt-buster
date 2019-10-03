@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # AUTOR: Bruno Chaves
-# Versão: 2.2
-# Ultima modificação: 2019-09-17 
+# Versão: 2.3
+# Ultima modificação: 2019-10-103
 # 
 # Repositório:
 # https://github.com/Brunopvh/cisco-pt-buster
@@ -303,5 +303,7 @@ msgs_zenity "--info" "Reiniciar" "Reinicie seu computador para aplicar alteraç�
 
 sudo -K #-------------------> Inicio
 (cisco_packettracer) #------> Meio # Tudo e feito apartir desta função
+sudo rm -rf "$dir_packettracer_tmp"
+sudo rm -rf "$dir_libs"
 sudo -K #-------------------> Fim
 
