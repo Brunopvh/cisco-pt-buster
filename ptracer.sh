@@ -374,13 +374,78 @@ _uninstall_packettracer()
 	_red "Falta código aqui (_uninstall_packettracer)"
 }
 
-_install_packettracer()
+# Função para configurar libpng12.
+_config_libpng()
 {
-	if is_executable packettracer; then
-		_msg "Cisco Packettracer já está instalado."
-		return 0
+	# Suporte a 32 bits.
+	_msg "Adicionando suporte a ARCH i386"
+	sudo dpkg --add-architecture i386
+	sudo apt update
+
+	__download__ "$URLlibpng12Debian8" "$FileLibpng12Deb8" || return 1
+	__shasum__ "$FileLibpng12Deb8" "$hashLibpng12Deb8" || return 1
+	
+	# Verificar se packettracer foi instalado neste diretório '/opt/pt/bin/'.
+	if [[ ! -d "/opt/pt/bin/" ]]; then
+		_red "Instale Cisco packettracer em ...... (/opt/pt) Em seguida execute este programa novamente"
+		return 1
 	fi
 
+	# Usar dpkg para extrair o arquivo e obter 'libpng12.so.0.50.0'.
+	_unpack "$FileLibpng12Deb8"
+	cd "$DirUnpack"
+	sudo cp -v -n lib/x86_64-linux-gnu/libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0.50.0'
+	sudo ln -sf /opt/pt/bin/libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0'  
+	cd "$DirUnpack" && __rmdir__ $(ls)
+}
+
+# Função para instalar dependências em ubuntu bionic.
+_install_libs_bionic()
+{
+	sudo apt install -y libssl1.0.0
+	_config_libpng || return 1
+}
+
+# Função para instalar dependências em debian buster.
+_install_libs_buster()
+{
+	# libssl1.0
+	__download__ "$URLlibssl1Debian8" "$FileLibssl1Deb8" || return 1
+	__shasum__ "$FileLibssl1Deb8" "$hashLibssl1Deb8" || return 1
+
+	_msg "Instalando: $FileLibssl1Deb8"
+	sudo gdebi "$FileLibssl1Deb8"
+	_config_libpng || return 1
+}
+
+
+# Corrigir arquivos em /opt/pt
+_config_ptracer_files()
+{
+
+	# /opt/pt/tpl.linguist
+	if [[ -f '/opt/pt/tpl.linguist' ]]; then 
+		sudo sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.linguist
+	fi
+
+	# /opt/pt/tpl.packettracer
+	if [[ -f '/opt/pt/tpl.packettracer' ]]; then
+		sudo sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.packettracer
+	fi
+
+	# Arquivo pt7.desktop
+	if [[ -f '/opt/pt/bin/Cisco-PacketTracer.desktop' ]]; then
+		sudo cp -u '/opt/pt/bin/Cisco-PacketTracer.desktop' '/usr/share/applications/' 
+	fi
+
+	# Remover arquivo '.desktop' duplicado.
+	if [[ -f '/usr/share/applications/pt7.desktop' ]]; then
+		sudo rm '/usr/share/applications/pt7.desktop'
+	fi
+}
+
+_install_packettracer()
+{
 	for X in "${ciscoptRequerimentsDebian[@]}"; do
 		_msg "Instalando: $X"
 		sudo apt install "$X"
@@ -430,76 +495,32 @@ _install_packettracer()
 	done
 }
 
-# Função para configurar libpng12.
-_config_libpng()
+__INSTALL__()
 {
-	# Suporte a 32 bits.
-	_msg "Adicionando suporte a ARCH i386"
-	sudo dpkg --add-architecture i386
-	sudo apt update
-
-	__download__ "$URLlibpng12Debian8" "$FileLibpng12Deb8" || return 1
-	__shasum__ "$FileLibpng12Deb8" "$hashLibpng12Deb8" || return 1
+	if is_executable packettracer; then
+		_msg "Cisco Packettracer já está instalado."
+		#return 0
+	fi
 	
-	# Verificar se packettracer foi instalado neste diretório '/opt/pt/bin/'.
-	if [[ ! -d "/opt/pt/bin/" ]]; then
-		_red "Instale Cisco packettracer em ...... (/opt/pt) Em seguida execute este programa novamente"
-		return 1
+	sudo apt update 
+	sleep .05
+	clear
+	_install_sys_requeriments || return 1
+	_install_packettracer || return 1
+
+	if [[ -f /opt/pt/packettracer ]]; then
+		# ./PacketTracer7 "$@" > /dev/null 2>&1 
+		# /opt/pt/bin/PacketTracer7 "$@" > /dev/null 2>&1
+		sudo sed -i 's|\./PacketTracer7 \"\$\@\" > /dev/null 2>\&1|/opt/pt/bin/PacketTracer7 \"\$\@" > /dev/null 2>\&1|g' /opt/pt/packettracer
 	fi
-
-	# Usar dpkg para extrair o arquivo e obter 'libpng12.so.0.50.0'.
-	_unpack "$FileLibpng12Deb8"
-	cd "$DirUnpack"
-	sudo cp -v -n lib/x86_64-linux-gnu/libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0.50.0'
-	sudo ln -sf /opt/pt/bin/libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0'  
-	cd "$DirUnpack" && __rmdir__ $(ls)
-}
-
-# Função para instalar dependências em debian buster.
-_install_libs_buster()
-{
-	# libssl1.0
-	__download__ "$URLlibssl1Debian8" "$FileLibssl1Deb8" || return 1
-	__shasum__ "$FileLibssl1Deb8" "$hashLibssl1Deb8" || return 1
-
-	_msg "Instalando: $FileLibssl1Deb8"
-	sudo gdebi "$FileLibssl1Deb8"
+	
+	return
 	_config_libpng || return 1
+	case "$os_id" in
+		debian) _install_libs_buster;;
+		ubuntu|linuxmint) _install_libs_bionic;;
+	esac
 }
-
-
-# Função para instalar dependências em ubuntu bionic.
-_install_libs_bionic()
-{
-	sudo apt install -y libssl1.0.0
-	_config_libpng || return 1
-}
-
-# Corrigir arquivos em /opt/pt
-_config_ptracer_files()
-{
-
-	# /opt/pt/tpl.linguist
-	if [[ -f '/opt/pt/tpl.linguist' ]]; then 
-		sudo sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.linguist
-	fi
-
-	# /opt/pt/tpl.packettracer
-	if [[ -f '/opt/pt/tpl.packettracer' ]]; then
-		sudo sed -i "s|PTDIR=.*|PTDIR=/opt/pt|g" /opt/pt/tpl.packettracer
-	fi
-
-	# Arquivo pt7.desktop
-	if [[ -f '/opt/pt/bin/Cisco-PacketTracer.desktop' ]]; then
-		sudo cp -u '/opt/pt/bin/Cisco-PacketTracer.desktop' '/usr/share/applications/' 
-	fi
-
-	# Remover arquivo '.desktop' duplicado.
-	if [[ -f '/usr/share/applications/pt7.desktop' ]]; then
-		sudo rm '/usr/share/applications/pt7.desktop'
-	fi
-}
-
 
 #--------------------------------------------------#
 # Run 
@@ -509,10 +530,7 @@ main()
 	_msg "Sistema: $os_id $os_version_id"
 	while [[ $1 ]]; do
 		case "$1" in
-			-i|--install) 
-						_install_sys_requeriments || return 1
-						_install_packettracer || return 1
-						;;
+			-i|--install) __INSTALL__;;
 			-h|--help) usage;;
 			*) usage; return 1; break;;
 		esac
