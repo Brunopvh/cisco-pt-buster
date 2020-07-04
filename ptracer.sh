@@ -136,6 +136,7 @@ ciscoptRequerimentsDebian=(
 	'qtmultimedia5-dev' 
 	'libqt5script5' 
 	'libqt5scripttools5'
+	'qtwebengine5-dev'
 )
 
 ciscoptRequerimentsUbuntu=(
@@ -392,9 +393,10 @@ _config_libpng()
 	fi
 
 	# Usar dpkg para extrair o arquivo e obter 'libpng12.so.0.50.0'.
-	_unpack "$FileLibpng12Deb8"
 	cd "$DirUnpack"
-	sudo cp -v -n lib/x86_64-linux-gnu/libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0.50.0'
+	sudo dpkg-deb -x "$FileLibpng12Deb8" "$DirUnpack"
+	cd lib/x86_64-linux-gnu
+	sudo cp -v -u libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0.50.0'
 	sudo ln -sf /opt/pt/bin/libpng12.so.0.50.0 '/opt/pt/bin/libpng12.so.0'  
 	cd "$DirUnpack" && __rmdir__ $(ls)
 }
@@ -512,14 +514,12 @@ __INSTALL__()
 	if [[ -f /opt/pt/packettracer ]]; then
 		# ./PacketTracer7 "$@" > /dev/null 2>&1 
 		# /opt/pt/bin/PacketTracer7 "$@" > /dev/null 2>&1
-		sudo sed -i 's|\./PacketTracer7 \"\$\@\" > /dev/null 2>\&1|/opt/pt/bin/PacketTracer7 \"\$\@" > /dev/null 2>\&1|g' /opt/pt/packettracer
+		sudo sed -i 's|\./PacketTracer7 \"\$\@\" > /dev/null 2>\&1|cd /opt/pt/bin; \./PacketTracer7 \"\$\@" > /dev/null 2>\&1|g' /opt/pt/packettracer
 	fi
 	
-	return
 	_config_libpng || return 1
 	case "$os_id" in
 		debian) _install_libs_buster;;
-		ubuntu|linuxmint) _install_libs_bionic;;
 	esac
 }
 
