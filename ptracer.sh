@@ -372,7 +372,11 @@ _zenity()
 
 _uninstall_packettracer()
 {
-	_red "Falta código aqui (_uninstall_packettracer)"
+	[[ -d '/opt/pt' ]] && __rmdir__ '/opt/pt'
+	[[ -f '/usr/share/applications/cisco-pt7.desktop' ]] && __rmdir__ '/usr/share/applications/cisco-pt7.desktop'
+	[[ -f '/usr/share/applications/cisco-ptsa7.desktop' ]] && __rmdir__ '/usr/share/applications/cisco-ptsa7.desktop'
+	[[ -x '/usr/local/bin/packettracer' ]] && __rmdir__ '/usr/local/bin/packettracer'
+	_yellow "packettracer desinstalado com sucesso"
 }
 
 # Função para configurar libpng12.
@@ -532,6 +536,7 @@ main()
 	while [[ $1 ]]; do
 		case "$1" in
 			-i|--install) __INSTALL__;;
+			-u|--uninstall) _uninstall_packettracer;;
 			-h|--help) usage;;
 			*) usage; return 1; break;;
 		esac
