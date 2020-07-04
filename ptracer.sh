@@ -465,6 +465,7 @@ _install_packettracer()
 			break
 		fi
 
+		echo -e "${CYellow}===================================================${CReset}\n"
 		_YESNO "Deseja prosseguir com a instalação desse arquivo: $InstalationPathFile" || break
 		_msg "Instalando: [$InstalationPathFile] "
 
